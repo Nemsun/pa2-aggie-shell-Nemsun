@@ -18,8 +18,19 @@
 #define NC      "\033[0m"
 
 using namespace std;
+// function to transform a string to lowercase
+string transform(string input) {
+    string output;
+    for (unsigned int i = 0; i < input.length(); i++) {
+        char letter = tolower(input.at(i));
+        output += letter;
+    }
+    return output;
+}
 
 int main () {
+    int stdout = dup(0);
+    int stdin = dup(1);
     for (;;) {
         // need date/time, username, and absolute path to current dir
         cout << YELLOW << "Shell$" << NC << " ";
@@ -28,9 +39,15 @@ int main () {
         string input;
         getline(cin, input);
 
-        if (input == "exit") {  // print exit message and break out of infinite loop
+
+        int fd[2];
+
+        if (transform(input) == "exit") {  // print exit message and break out of infinite loop
             cout << RED << "Now exiting shell..." << endl << "Goodbye" << NC << endl;
             break;
+        }
+        if (input.empty()) {
+            continue;
         }
 
         // get tokenized commands from user input
@@ -56,6 +73,30 @@ int main () {
 
         // fork to create child
         pid_t pid = fork();
+        for (unsigned int i = 0; i < tknr.commands.size(); i++) {
+            pipe(fd);
+            if (pid == 0) {
+                if (i < tknr.commands.size()-1) {
+                    dup2(fd[1], STDOUT_FILENO);
+                    close(fd[0]);   
+                }
+                char** args = new char*[tknr.commands[i]->args.size() + 1];
+                for (unsigned int j = 0; j < tknr.commands[i]->args.size(); j++) {
+                    args[j] = const_cast<char *>(tknr.commands[i]->args[j].c_str());
+                }
+                args[tknr.commands[i]->args.size()] = nullptr;
+                execvp(args[0], args);
+            } else {
+                dup2(fd[0], STDIN_FILENO);
+                close(fd[1]);
+                if (i == tknr.commands.size() - 1) {
+                    wait(0);
+                }
+            }
+            dup2(stdin, 0);
+            dup2(stdout, 1);
+        }
+        /*
         if (pid < 0) {  // error check
             perror("fork");
             exit(2);
@@ -77,5 +118,6 @@ int main () {
                 exit(status);
             }
         }
+    } */
     }
 }

@@ -146,9 +146,9 @@ int main () {
                 perror("FAILED TO CREATE CHILD");
                 exit(2);
             }
-            char **args = new char *[tknr.commands[i]->args.size() + 1];
+            char** args = new char*[tknr.commands[i]->args.size() + 1];
             for (unsigned int j = 0; j < tknr.commands[i]->args.size(); j++) {
-                args[j] = (char *)tknr.commands[i]->args[j].c_str();
+                args[j] = (char*)tknr.commands[i]->args[j].c_str();
             }
             args[tknr.commands[i]->args.size()] = nullptr;
             if (pid == 0) {  // if child, exec to run command
@@ -192,7 +192,6 @@ int main () {
                     perror("execvp");
                     exit(2);
                 }
-                delete[] args;
             }
             else {  // if parent, wait for child to finish
                 // Redirect the SHELL(PARENT)'s input to the read end of the pipe
@@ -206,6 +205,8 @@ int main () {
                 }
                 // wait until the last command finishes
                 if((i == (tknr.commands.size() - 1)) && !(tknr.commands[i]->isBackground())) {
+                    // deallocate the argument array afterwards
+                    delete[] args;
                     waitpid(pid, &status, 0);
                 }
                 if (status > 1) {  // exit if child didn't exec properly

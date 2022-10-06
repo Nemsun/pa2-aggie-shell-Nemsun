@@ -149,12 +149,12 @@ int main () {
                 perror("FAILED TO CREATE CHILD");
                 exit(2);
             }
-            char** args = new char*[tknr.commands[i]->args.size() + 1];
-            for (unsigned int j = 0; j < tknr.commands[i]->args.size(); j++) {
-                args[j] = (char*)tknr.commands[i]->args[j].c_str();
-            }
-            args[tknr.commands[i]->args.size()] = nullptr;
             if (pid == 0) {  // if child, exec to run command
+                char** args = new char*[tknr.commands[i]->args.size() + 1];
+                for (unsigned int j = 0; j < tknr.commands[i]->args.size(); j++) {
+                    args[j] = (char*)tknr.commands[i]->args[j].c_str();
+                }
+                args[tknr.commands[i]->args.size()] = nullptr;
                 // if current command is redirected, then open file and dup2 std(in/out) that's being redirected; DONE
                 // implement it safely for both at the same time; DONE
                 // check for I/O redirection
@@ -206,7 +206,6 @@ int main () {
                 // for single command, check for zombie processes and reap them
                 if (tknr.commands.size() < 2 && tknr.commands[i]->isBackground()) {
                     bg_processes.push_back(pid);
-                    delete[] args;
                 } else {
                     waitpid(pid, &status, 0);
                 }
@@ -218,7 +217,6 @@ int main () {
                 if((i == (tknr.commands.size() - 1)) && !(tknr.commands[i]->isBackground())) {
                     // deallocate the argument array afterwards
                     waitpid(pid, &status, 0);
-                    delete[] args;
                 }
                 if (status > 1) {  // exit if child didn't exec properly
                     exit(status);

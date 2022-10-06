@@ -52,16 +52,10 @@ int main () {
     vector<pid_t> bg_processes;
     // previous working directory
     char pwd[MAX_PATH];
+    int status;
     for (;;) {
         // implement iteration over vector of bg pid (vector also declared outside loop); DONE
         // waitpid() - using flag for non-blocking; DONE
-        for (size_t i = 0; i < bg_processes.size(); i++) {
-            if ((waitpid(bg_processes[i], 0, WNOHANG)) > 0 ) {
-                cout << "Process: " << bg_processes[i] << " ended" << endl;
-                bg_processes.erase(bg_processes.begin() + i);
-                i--;
-            }
-        }
         // Implement date/time with TODO; DONE
         time_t curTime;
         time(&curTime);
@@ -80,6 +74,15 @@ int main () {
         // get user inputted command
         string input;
         getline(cin, input);
+
+        for (unsigned int i = 0; i < bg_processes.size(); i++) {
+            // reaping processes
+            if (WIFSIGNALED(waitpid(bg_processes[i], 0, WNOHANG))) {
+                cout << "Process: " << bg_processes[i] << " has been killed" << endl;
+                bg_processes.erase(bg_processes.begin() + i);
+                i--;
+            }
+        }
 
         if (transform(input) == "exit") {  // print exit message and break out of infinite loop
             cout << RED << "Now exiting shell..." << endl << "Goodbye" << NC << endl;
@@ -198,16 +201,23 @@ int main () {
                 dup2(fd[0], STDIN_FILENO);
                 // Close the write end of the pipe
                 close(fd[1]);
-                int status = 0;
+                status = 0;
                 // add check for bg process - add pid to vector if bg and don't waitpid() in parent; DONE
-                if(tknr.commands.at(i)->isBackground()) {
+                // for single command, check for zombie processes and reap them
+                if (tknr.commands.size() < 2 && tknr.commands[i]->isBackground()) {
+                    bg_processes.push_back(pid);
+                } else {
+                    waitpid(pid,0,0);
+                }
+                // for piped commands
+                if(tknr.commands[i]->isBackground()) {
                     bg_processes.push_back(pid);
                 }
                 // wait until the last command finishes
                 if((i == (tknr.commands.size() - 1)) && !(tknr.commands[i]->isBackground())) {
                     // deallocate the argument array afterwards
-                    delete[] args;
                     waitpid(pid, &status, 0);
+                    delete[] args;
                 }
                 if (status > 1) {  // exit if child didn't exec properly
                     exit(status);

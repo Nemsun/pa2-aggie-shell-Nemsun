@@ -206,8 +206,9 @@ int main () {
                 // for single command, check for zombie processes and reap them
                 if (tknr.commands.size() < 2 && tknr.commands[i]->isBackground()) {
                     bg_processes.push_back(pid);
+                    delete[] args;
                 } else {
-                    waitpid(pid,0,0);
+                    waitpid(pid, &status, 0);
                 }
                 // for piped commands
                 if(tknr.commands[i]->isBackground()) {
